@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Go
+bin/
+*.test
+coverage.out
+
+# Node / React
+node_modules/
+dist/
+
+# Env
+.env
+.env.*
