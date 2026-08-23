@@ -7,4 +7,5 @@ import (
 
 type CloudServiceRepository interface {
 	GetByID(ctx context.Context, id string) (domain.CloudService, error)
+	Restart(ctx context.Context, id string) (domain.CloudService, error)
 }

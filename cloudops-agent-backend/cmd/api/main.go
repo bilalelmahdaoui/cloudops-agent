@@ -11,16 +11,21 @@ import (
 
 func main() {
 	fakeCloudAdapter := cloudadapter.NewFakeCloudAdapter()
+
 	getCloudServiceUseCase := application.NewGetCloudServiceUseCase(fakeCloudAdapter)
+	restartCloudServiceUseCase := application.NewRestartCloudServiceUseCase(fakeCloudAdapter)
 
-	cloudServiceHandler := httpadapter.NewCloudServiceHandler(getCloudServiceUseCase)
+	cloudServiceHandler := httpadapter.NewCloudServiceHandler(
+		getCloudServiceUseCase,
+		restartCloudServiceUseCase,
+	)
 
-	http.HandleFunc("/cloud-services/", cloudServiceHandler.GetByID)
+	mux := http.NewServeMux()
+	cloudServiceHandler.RegisterRoutes(mux)
 
 	fmt.Println("API running on http://localhost:8080")
 
-	err := http.ListenAndServe(":8080", nil)
-
+	err := http.ListenAndServe(":8080", mux)
 	if err != nil {
 		panic(err)
 	}

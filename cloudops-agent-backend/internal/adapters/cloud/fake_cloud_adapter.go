@@ -114,3 +114,51 @@ func (e *FakeCloudAdapter) GetByID(ctx context.Context, id string) (domain.Cloud
 
 	return domain.CloudService{}, fmt.Errorf("cloud service with id %q not found", id)
 }
+
+func (e *FakeCloudAdapter) Restart(ctx context.Context, id string) (domain.CloudService, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.CloudService{}, err
+	}
+	if id == "" {
+		return domain.CloudService{}, fmt.Errorf("ID is required")
+	}
+
+	cloudServiceIdx := -1
+
+	for idx, service := range e.cloudServices {
+		if service.ID == id {
+			cloudServiceIdx = idx
+			break
+		}
+	}
+
+	if cloudServiceIdx == -1 {
+		return domain.CloudService{}, fmt.Errorf("cloud service with id %q not found", id)
+	}
+
+	e.cloudServices[cloudServiceIdx].Status = domain.CloudServiceStatusRestarting
+	e.cloudServices[cloudServiceIdx].Logs = append(
+		e.cloudServices[cloudServiceIdx].Logs,
+		domain.CloudServiceLog{
+			DateTime: time.Now(),
+			Event:    "Server restarting...",
+		},
+	)
+
+	timer := time.NewTimer(5 * time.Second)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return domain.CloudService{}, ctx.Err()
+
+	case <-timer.C:
+		e.cloudServices[cloudServiceIdx].Status = domain.CloudServiceStatusRunning
+		e.cloudServices[cloudServiceIdx].Logs = append(e.cloudServices[cloudServiceIdx].Logs, domain.CloudServiceLog{
+			DateTime: time.Now(),
+			Event:    "Server started successfully",
+		})
+	}
+
+	return e.cloudServices[cloudServiceIdx], nil
+}

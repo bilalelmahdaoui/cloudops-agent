@@ -6,6 +6,7 @@ type CloudServiceStatus string
 
 const (
 	CloudServiceStatusRunning CloudServiceStatus = "running"
+	CloudServiceStatusRestarting CloudServiceStatus = "restarting"
 	CloudServiceStatusDown    CloudServiceStatus = "down"
 )
 
