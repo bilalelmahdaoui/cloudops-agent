@@ -24,7 +24,7 @@ func NewCloudServiceHandler(
 
 func (h *CloudServiceHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /cloud-services/{id}", h.GetByID)
-	mux.HandleFunc("GET /cloud-services/{id}/restart", h.Restart)
+	mux.HandleFunc("POST /cloud-services/{id}/restart", h.Restart)
 }
 
 func (h *CloudServiceHandler) GetByID(

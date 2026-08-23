@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"testing"
+
+	"github.com/bilalelmahdaoui/cloudops-agent-backend/internal/domain"
 )
 
 func TestFakeCloudAdapter_GetByID(t *testing.T) {
@@ -43,4 +45,35 @@ func TestFakeCloudAdapter_GetByID(t *testing.T) {
 			t.Errorf("context.Canceled attendu, erreur reçue : %v", err)
 		}
 	})
+}
+
+func TestFakeCloudAdapter_Restart(t *testing.T) {
+	adapter := NewFakeCloudAdapter()
+
+	service, err := adapter.Restart(context.Background(), "OVH-SERVICE-003")
+	if err != nil {
+		t.Fatalf("aucune erreur attendue, erreur reçue : %v", err)
+	}
+
+	if service.Status != domain.CloudServiceStatusRunning {
+		t.Errorf(
+			"statut attendu %q, statut reçu %q",
+			domain.CloudServiceStatusRunning,
+			service.Status,
+		)
+	}
+
+	if len(service.Logs) < 2 {
+		t.Fatal("des logs de redémarrage étaient attendus")
+	}
+
+	lastLog := service.Logs[len(service.Logs)-1]
+
+	if lastLog.Event != "Server started successfully" {
+		t.Errorf(
+			"dernier log attendu %q, log reçu %q",
+			"Server started successfully",
+			lastLog.Event,
+		)
+	}
 }

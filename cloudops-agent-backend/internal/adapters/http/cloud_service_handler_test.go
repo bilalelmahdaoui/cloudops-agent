@@ -9,10 +9,25 @@ import (
 	"github.com/bilalelmahdaoui/cloudops-agent-backend/internal/application"
 )
 
-func TestCloudServiceHandler_GetByID(t *testing.T) {
+func newTestHandler() (*CloudServiceHandler, *http.ServeMux) {
 	repository := cloud.NewFakeCloudAdapter()
-	useCase := application.NewGetCloudServiceUseCase(repository)
-	handler := NewCloudServiceHandler(useCase)
+
+	getUseCase := application.NewGetCloudServiceUseCase(repository)
+	restartUseCase := application.NewRestartCloudServiceUseCase(repository)
+
+	handler := NewCloudServiceHandler(
+		getUseCase,
+		restartUseCase,
+	)
+
+	mux := http.NewServeMux()
+	handler.RegisterRoutes(mux)
+
+	return handler, mux
+}
+
+func TestCloudServiceHandler_GetByID(t *testing.T) {
+	_, mux := newTestHandler()
 
 	t.Run("retourne 200 si le service existe", func(t *testing.T) {
 		req := httptest.NewRequest(
@@ -23,10 +38,14 @@ func TestCloudServiceHandler_GetByID(t *testing.T) {
 
 		rec := httptest.NewRecorder()
 
-		handler.GetByID(rec, req)
+		mux.ServeHTTP(rec, req)
 
 		if rec.Code != http.StatusOK {
-			t.Errorf("code HTTP attendu %d, code reçu %d", http.StatusOK, rec.Code)
+			t.Errorf(
+				"code HTTP attendu %d, code reçu %d",
+				http.StatusOK,
+				rec.Code,
+			)
 		}
 	})
 
@@ -39,7 +58,7 @@ func TestCloudServiceHandler_GetByID(t *testing.T) {
 
 		rec := httptest.NewRecorder()
 
-		handler.GetByID(rec, req)
+		mux.ServeHTTP(rec, req)
 
 		if rec.Code != http.StatusNotFound {
 			t.Errorf(
@@ -49,4 +68,26 @@ func TestCloudServiceHandler_GetByID(t *testing.T) {
 			)
 		}
 	})
+}
+
+func TestCloudServiceHandler_Restart(t *testing.T) {
+	_, mux := newTestHandler()
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/cloud-services/OVH-SERVICE-003/restart",
+		nil,
+	)
+
+	rec := httptest.NewRecorder()
+
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf(
+			"code HTTP attendu %d, code reçu %d",
+			http.StatusOK,
+			rec.Code,
+		)
+	}
 }
