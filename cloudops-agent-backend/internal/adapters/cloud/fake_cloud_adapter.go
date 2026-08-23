@@ -98,6 +98,17 @@ func NewFakeCloudAdapter() *FakeCloudAdapter {
 		}}
 }
 
+func (e *FakeCloudAdapter) GetAll(ctx context.Context) ([]domain.CloudService, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	cloudServices := make([]domain.CloudService, len(e.cloudServices))
+	copy(cloudServices, e.cloudServices[:])
+
+	return cloudServices, nil
+}
+
 func (e *FakeCloudAdapter) GetByID(ctx context.Context, id string) (domain.CloudService, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.CloudService{}, err

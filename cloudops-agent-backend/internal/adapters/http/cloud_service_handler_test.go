@@ -1,6 +1,7 @@
 package httpadapter
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,10 +13,12 @@ import (
 func newTestHandler() (*CloudServiceHandler, *http.ServeMux) {
 	repository := cloud.NewFakeCloudAdapter()
 
+	getAllUseCase := application.NewGetAllCloudServicesUseCase(repository)
 	getUseCase := application.NewGetCloudServiceUseCase(repository)
 	restartUseCase := application.NewRestartCloudServiceUseCase(repository)
 
 	handler := NewCloudServiceHandler(
+		getAllUseCase,
 		getUseCase,
 		restartUseCase,
 	)
@@ -24,6 +27,45 @@ func newTestHandler() (*CloudServiceHandler, *http.ServeMux) {
 	handler.RegisterRoutes(mux)
 
 	return handler, mux
+}
+
+func TestCloudServiceHandler_GetAll(t *testing.T) {
+	_, mux := newTestHandler()
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/cloud-services",
+		nil,
+	)
+
+	rec := httptest.NewRecorder()
+
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf(
+			"code HTTP attendu %d, code reçu %d",
+			http.StatusOK,
+			rec.Code,
+		)
+	}
+
+	var services []map[string]any
+	if err := json.NewDecoder(rec.Body).Decode(&services); err != nil {
+		t.Fatalf("une réponse JSON valide était attendue, erreur reçue : %v", err)
+	}
+
+	if len(services) != 5 {
+		t.Errorf("nombre de services attendu %d, nombre reçu %d", 5, len(services))
+	}
+
+	if _, exists := services[0]["id"]; !exists {
+		t.Error("la propriété JSON id était attendue")
+	}
+
+	if _, exists := services[0]["logs"]; !exists {
+		t.Error("la propriété JSON logs était attendue")
+	}
 }
 
 func TestCloudServiceHandler_GetByID(t *testing.T) {

@@ -12,10 +12,12 @@ import (
 func main() {
 	fakeCloudAdapter := cloudadapter.NewFakeCloudAdapter()
 
+	getAllCloudServicesUseCase := application.NewGetAllCloudServicesUseCase(fakeCloudAdapter)
 	getCloudServiceUseCase := application.NewGetCloudServiceUseCase(fakeCloudAdapter)
 	restartCloudServiceUseCase := application.NewRestartCloudServiceUseCase(fakeCloudAdapter)
 
 	cloudServiceHandler := httpadapter.NewCloudServiceHandler(
+		getAllCloudServicesUseCase,
 		getCloudServiceUseCase,
 		restartCloudServiceUseCase,
 	)

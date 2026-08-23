@@ -8,6 +8,33 @@ import (
 	"github.com/bilalelmahdaoui/cloudops-agent-backend/internal/domain"
 )
 
+func TestFakeCloudAdapter_GetAll(t *testing.T) {
+	adapter := NewFakeCloudAdapter()
+
+	t.Run("retourne les cinq services cloud", func(t *testing.T) {
+		services, err := adapter.GetAll(context.Background())
+
+		if err != nil {
+			t.Fatalf("aucune erreur attendue, erreur reçue : %v", err)
+		}
+
+		if len(services) != 5 {
+			t.Errorf("nombre de services attendu %d, nombre reçu %d", 5, len(services))
+		}
+	})
+
+	t.Run("retourne une erreur si le contexte est annulé", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		_, err := adapter.GetAll(ctx)
+
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("context.Canceled attendu, erreur reçue : %v", err)
+		}
+	})
+}
+
 func TestFakeCloudAdapter_GetByID(t *testing.T) {
 	adapter := NewFakeCloudAdapter()
 
