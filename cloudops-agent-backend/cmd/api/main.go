@@ -25,7 +25,10 @@ func main() {
 
 	fmt.Println("API running on http://localhost:8080")
 
-	err := http.ListenAndServe(":8080", mux)
+	handler := httpadapter.CORSMiddleware(mux)
+
+	err := http.ListenAndServe(":8080", handler)
+
 	if err != nil {
 		panic(err)
 	}
