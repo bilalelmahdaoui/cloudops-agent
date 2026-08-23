@@ -1,0 +1,295 @@
+.app-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  height: 100vh;
+  background: #f4f6fa;
+}
+
+.chat-panel,
+.services-panel {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.chat-panel {
+  background: #ffffff;
+}
+
+.services-panel {
+  overflow: hidden;
+  border-left: 1px solid #e3e7ef;
+  background: #f8f9fc;
+  padding: 24px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 28px;
+  border-bottom: 1px solid #e8ebf1;
+}
+
+.services-panel .panel-header {
+  padding: 0 0 20px;
+  margin-bottom: 20px;
+}
+
+.panel-header h1,
+.panel-header h2 {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.eyebrow {
+  color: #687386;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.agent-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #536074;
+  font-size: 13px;
+}
+
+.agent-status__dot,
+.status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #12d97a;
+}
+
+.message-list {
+  display: flex;
+  flex: 1;
+  overflow-y: auto;
+  flex-direction: column;
+  gap: 18px;
+  padding: 32px;
+}
+
+.message {
+  width: fit-content;
+  max-width: 70%;
+  padding: 14px 16px;
+  border-radius: 20px;
+}
+
+.message p {
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+
+.message__author {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.message--assistant {
+  align-self: flex-start;
+  background: #eef2ff;
+  color: #25345a;
+}
+
+.message--user {
+  align-self: flex-end;
+  background: #172554;
+  color: #ffffff;
+}
+
+.chat-input {
+  display: flex;
+  gap: 12px;
+  padding: 20px 28px 28px;
+  border-top: 1px solid #e8ebf1;
+}
+
+.chat-input input {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid #d5dae5;
+  border-radius: 16px;
+  outline: none;
+}
+
+.chat-input input:focus {
+  border-color: #4355db;
+  box-shadow: 0 0 0 3px rgb(67 85 219 / 10%);
+}
+
+.button {
+  border: 0;
+  border-radius: 12px;
+  padding: 9px 13px;
+  font-weight: 400;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.button--primary {
+  background: #2536a8;
+  color: #ffffff;
+}
+
+.button--secondary {
+  background: #eef1f6;
+  color: #344054;
+}
+
+.button--danger {
+  background: #b42318;
+  color: #ffffff;
+}
+
+.button--ghost {
+  background: transparent;
+  color: #667085;
+}
+
+.service-list {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 4px;
+}
+
+.service-card {
+  padding: 16px;
+  border: 1px solid #e1e5ec;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgb(16 24 40 / 3%);
+}
+
+.service-card__header,
+.service-card__footer,
+.service-card__metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.service-card h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.service-card__id {
+  color: #8a94a6;
+  font-size: 11px;
+}
+
+.service-card__metric {
+  margin: 18px 0;
+}
+
+.service-card__metric-header {
+  margin-bottom: 7px;
+  color: #667085;
+  font-size: 12px;
+}
+
+.service-card__metric-header strong {
+  font-weight: 500;
+}
+
+.cpu-bar {
+  overflow: hidden;
+  height: 6px;
+  border-radius: 999px;
+  background: #eceff4;
+}
+
+.cpu-bar__value {
+  height: 100%;
+  border-radius: inherit;
+  background: #4355db;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: #f2f4f7;
+  color: #475467;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.status--down .status__dot {
+  background: #d92d20;
+}
+
+.status--restarting .status__dot {
+  background: #f79009;
+}
+
+.service-card__footer {
+  color: #7c8799;
+  font-size: 12px;
+}
+
+.confirmation-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.service-count {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 11px;
+  background: #e8ebff;
+  color: #3445b4;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.panel-state {
+  padding: 20px 0;
+  color: #667085;
+  text-align: center;
+}
+
+.panel-state--error {
+  color: #b42318;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .chat-panel {
+    min-height: 70vh;
+  }
+
+  .services-panel {
+    border-top: 1px solid #e3e7ef;
+    border-left: 0;
+  }
+}

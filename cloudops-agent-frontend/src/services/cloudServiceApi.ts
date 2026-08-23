@@ -1,30 +1,41 @@
-import type { CloudService } from "../types/cloudService";
+import type { CloudService } from "../types/CloudService";
 
 export class CloudServiceApi {
-  constructor(private readonly baseUrl: string) {}
+  private readonly baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
+  public async getCloudServices(): Promise<CloudService[]> {
+    return this.request<CloudService[]>("/cloud-services");
+  }
 
   public async getCloudService(id: string): Promise<CloudService> {
-    const response = await fetch(`${this.baseUrl}/cloud-services/${id}`);
-
-    if (!response.ok) {
-      throw new Error("Impossible de récupérer le service cloud");
-    }
-
-    return response.json();
+    return this.request<CloudService>(`/cloud-services/${id}`);
   }
 
   public async restartCloudService(id: string): Promise<CloudService> {
-    const response = await fetch(
-      `${this.baseUrl}/cloud-services/${id}/restart`,
+    return this.request<CloudService>(
+      `/cloud-services/${id}/restart`,
       {
         method: "POST",
-      }
+      },
     );
+  }
+
+  private async request<T>(
+    path: string,
+    options?: RequestInit,
+  ): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${path}`, options);
 
     if (!response.ok) {
-      throw new Error("Impossible de redémarrer le service cloud");
+      throw new Error(
+        `La requête a échoué avec le statut ${response.status}`,
+      );
     }
 
-    return response.json();
+    return response.json() as Promise<T>;
   }
 }
