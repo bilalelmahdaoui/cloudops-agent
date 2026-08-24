@@ -22,7 +22,7 @@ type cloudServiceInput struct {
 }
 
 type findCloudServicesInput struct {
-	Query string `json:"query" jsonschema:"cloud service name or partial name"`
+	Query string `json:"query" jsonschema:"cloud service name, partial name, common abbreviation, or possibly misspelled name"`
 }
 
 type cloudServiceReference struct {
@@ -84,7 +84,7 @@ func NewCloudOpsServer(
 		server,
 		&mcp.Tool{
 			Name: FindCloudServicesToolName,
-			Description: "Finds cloud services by a full or partial human-readable name, case-insensitively, and returns " +
+			Description: "Finds cloud services by a full or partial human-readable name, common abbreviation, or close misspelling, and returns " +
 				"their canonical ids. Use this before any read or lifecycle tool when the user identifies " +
 				"a service by name instead of a canonical OVH-SERVICE-xxx id. Only act automatically when exactly one " +
 				"service matches; ask the user to clarify when several services match.",

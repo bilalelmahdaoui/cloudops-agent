@@ -105,6 +105,36 @@ func TestFakeCloudAdapter_Search(t *testing.T) {
 		}
 	})
 
+	t.Run("tolère une faute de frappe dans le nom du service", func(t *testing.T) {
+		services, err := adapter.Search(context.Background(), "authentifaciton", 10)
+		if err != nil {
+			t.Fatalf("aucune erreur attendue, erreur reçue : %v", err)
+		}
+		if len(services) != 1 || services[0].ID != "OVH-SERVICE-004" {
+			t.Fatalf("le service d'authentification était attendu")
+		}
+	})
+
+	t.Run("reconnaît une abréviation courante", func(t *testing.T) {
+		services, err := adapter.Search(context.Background(), "the db service", 10)
+		if err != nil {
+			t.Fatalf("aucune erreur attendue, erreur reçue : %v", err)
+		}
+		if len(services) != 1 || services[0].ID != "OVH-SERVICE-003" {
+			t.Fatalf("le service de base de données était attendu")
+		}
+	})
+
+	t.Run("ne rapproche pas une recherche sans rapport", func(t *testing.T) {
+		services, err := adapter.Search(context.Background(), "cache", 10)
+		if err != nil {
+			t.Fatalf("aucune erreur attendue, erreur reçue : %v", err)
+		}
+		if len(services) != 0 {
+			t.Fatalf("aucun service attendu, %d reçus", len(services))
+		}
+	})
+
 	t.Run("retourne une liste vide sans erreur si aucun service ne correspond", func(t *testing.T) {
 		services, err := adapter.Search(context.Background(), "inconnu", 10)
 		if err != nil {

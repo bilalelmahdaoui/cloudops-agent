@@ -3,7 +3,6 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -161,8 +160,7 @@ func (e *FakeCloudAdapter) Search(
 		return nil, err
 	}
 
-	normalizedQuery := strings.ToLower(strings.TrimSpace(query))
-	if normalizedQuery == "" {
+	if len(normalizeSearchTerms(query)) == 0 {
 		return nil, fmt.Errorf("search query is required")
 	}
 	if limit <= 0 {
@@ -174,8 +172,7 @@ func (e *FakeCloudAdapter) Search(
 
 	services := make([]domain.CloudService, 0)
 	for _, service := range e.cloudServices {
-		if strings.Contains(strings.ToLower(service.Name), normalizedQuery) ||
-			strings.Contains(strings.ToLower(service.ID), normalizedQuery) {
+		if cloudServiceMatchesQuery(service, query) {
 			services = append(services, cloneCloudService(service))
 			if len(services) == limit {
 				break

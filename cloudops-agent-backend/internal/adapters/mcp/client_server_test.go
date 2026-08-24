@@ -3,6 +3,7 @@ package mcpadapter
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/bilalelmahdaoui/cloudops-agent-backend/internal/adapters/cloud"
@@ -127,6 +128,36 @@ func TestMCPClientAdapter_CallTool(t *testing.T) {
 		}
 		if len(services) != 1 || services[0].ID != "OVH-SERVICE-001" {
 			t.Fatalf("le service backend avec son ID canonique était attendu")
+		}
+	})
+
+	t.Run("recherche un service avec une faute ou une abréviation", func(t *testing.T) {
+		client := newTestMCPClient(t)
+
+		tests := []struct {
+			query      string
+			expectedID string
+		}{
+			{query: "authentifaciton", expectedID: "OVH-SERVICE-004"},
+			{query: "db service", expectedID: "OVH-SERVICE-003"},
+		}
+
+		for _, test := range tests {
+			output, err := client.CallTool(context.Background(), ports.ToolCall{
+				Name:      FindCloudServicesToolName,
+				Arguments: fmt.Sprintf(`{"query":%q}`, test.query),
+			})
+			if err != nil {
+				t.Fatalf("recherche %q impossible : %v", test.query, err)
+			}
+
+			var services []domain.CloudService
+			if err := json.Unmarshal([]byte(output), &services); err != nil {
+				t.Fatalf("résultat JSON invalide : %v", err)
+			}
+			if len(services) != 1 || services[0].ID != test.expectedID {
+				t.Fatalf("service attendu %q pour la recherche %q", test.expectedID, test.query)
+			}
 		}
 	})
 
