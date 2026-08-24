@@ -6,9 +6,17 @@ The project uses an in-memory cloud adapter, so it runs locally without a cloud 
 
 ## Screenshots
 
-> **Screenshot placeholder:** main dashboard and cloud service list.
+### Dashboard and agent capabilities
 
-> **Screenshot placeholder:** agent running a service lifecycle action.
+![CloudOps Agent dashboard showing the chat and cloud service status panel](docs/screenshots/cloudops-dashboard.png)
+
+### Service restart in progress
+
+![CloudOps Agent restarting the database service](docs/screenshots/service-restart.png)
+
+### Lifecycle actions and synchronized service state
+
+![CloudOps Agent completing restart and shutdown operations](docs/screenshots/lifecycle-actions.png)
 
 ## Stack
 
