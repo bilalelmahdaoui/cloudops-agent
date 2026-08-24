@@ -16,11 +16,15 @@ func newTestHandler() (*CloudServiceHandler, *http.ServeMux) {
 	getAllUseCase := application.NewGetAllCloudServicesUseCase(repository)
 	getUseCase := application.NewGetCloudServiceUseCase(repository)
 	restartUseCase := application.NewRestartCloudServiceUseCase(repository)
+	shutdownUseCase := application.NewShutdownCloudServiceUseCase(repository)
+	startUseCase := application.NewStartCloudServiceUseCase(repository)
 
 	handler := NewCloudServiceHandler(
 		getAllUseCase,
 		getUseCase,
 		restartUseCase,
+		shutdownUseCase,
+		startUseCase,
 	)
 
 	mux := http.NewServeMux()
@@ -131,5 +135,31 @@ func TestCloudServiceHandler_Restart(t *testing.T) {
 			http.StatusOK,
 			rec.Code,
 		)
+	}
+}
+
+func TestCloudServiceHandler_ShutdownEtStart(t *testing.T) {
+	_, mux := newTestHandler()
+
+	shutdownRequest := httptest.NewRequest(
+		http.MethodPost,
+		"/cloud-services/OVH-SERVICE-003/shutdown",
+		nil,
+	)
+	shutdownResponse := httptest.NewRecorder()
+	mux.ServeHTTP(shutdownResponse, shutdownRequest)
+	if shutdownResponse.Code != http.StatusOK {
+		t.Fatalf("code HTTP d'arrêt attendu %d, code reçu %d", http.StatusOK, shutdownResponse.Code)
+	}
+
+	startRequest := httptest.NewRequest(
+		http.MethodPost,
+		"/cloud-services/OVH-SERVICE-003/start",
+		nil,
+	)
+	startResponse := httptest.NewRecorder()
+	mux.ServeHTTP(startResponse, startRequest)
+	if startResponse.Code != http.StatusOK {
+		t.Errorf("code HTTP de démarrage attendu %d, code reçu %d", http.StatusOK, startResponse.Code)
 	}
 }

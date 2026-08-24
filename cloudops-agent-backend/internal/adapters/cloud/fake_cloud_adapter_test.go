@@ -36,6 +36,20 @@ func TestFakeCloudAdapter_GetAll(t *testing.T) {
 	})
 }
 
+func TestFakeCloudAdapter_DureesDesOperations(t *testing.T) {
+	adapter := NewFakeCloudAdapter()
+
+	if adapter.restartDelay != 4*time.Second {
+		t.Errorf("durée de redémarrage attendue %s, durée reçue %s", 4*time.Second, adapter.restartDelay)
+	}
+	if adapter.startDelay != 2*time.Second {
+		t.Errorf("durée de démarrage attendue %s, durée reçue %s", 2*time.Second, adapter.startDelay)
+	}
+	if adapter.shutdownDelay != 2*time.Second {
+		t.Errorf("durée d'arrêt attendue %s, durée reçue %s", 2*time.Second, adapter.shutdownDelay)
+	}
+}
+
 func TestFakeCloudAdapter_GetByID(t *testing.T) {
 	adapter := NewFakeCloudAdapter()
 
@@ -145,6 +159,9 @@ func TestFakeCloudAdapter_Restart(t *testing.T) {
 			service.Status,
 		)
 	}
+	if service.CPUUsage != 0.65 {
+		t.Errorf("CPU attendu %.0f %%, CPU reçu %.0f %%", 65.0, service.CPUUsage*100)
+	}
 
 	if len(service.Logs) < 2 {
 		t.Fatal("des logs de redémarrage étaient attendus")
@@ -179,6 +196,9 @@ func TestFakeCloudAdapter_Restart_ContinueApresAnnulation(t *testing.T) {
 			t.Fatalf("lecture du service impossible : %v", err)
 		}
 		if service.Status == domain.CloudServiceStatusRestarting {
+			if service.CPUUsage != 0 {
+				t.Errorf("le CPU devait être à zéro pendant le redémarrage, valeur reçue : %f", service.CPUUsage)
+			}
 			break
 		}
 		if time.Now().After(deadline) {
@@ -199,5 +219,36 @@ func TestFakeCloudAdapter_Restart_ContinueApresAnnulation(t *testing.T) {
 	}
 	if service.Status != domain.CloudServiceStatusRunning {
 		t.Errorf("le redémarrage devait se terminer malgré l'annulation, statut reçu : %q", service.Status)
+	}
+	if service.CPUUsage != 0.65 {
+		t.Errorf("le CPU nominal devait être restauré, valeur reçue : %f", service.CPUUsage)
+	}
+}
+
+func TestFakeCloudAdapter_ShutdownEtStart(t *testing.T) {
+	adapter := NewFakeCloudAdapter()
+	adapter.shutdownDelay = time.Millisecond
+	adapter.startDelay = time.Millisecond
+
+	stoppedService, err := adapter.Shutdown(context.Background(), "OVH-SERVICE-003")
+	if err != nil {
+		t.Fatalf("arrêt impossible : %v", err)
+	}
+	if stoppedService.Status != domain.CloudServiceStatusDown {
+		t.Errorf("statut attendu %q, statut reçu %q", domain.CloudServiceStatusDown, stoppedService.Status)
+	}
+	if stoppedService.CPUUsage != 0 {
+		t.Errorf("le CPU d'un service arrêté devait être nul, valeur reçue : %f", stoppedService.CPUUsage)
+	}
+
+	startedService, err := adapter.Start(context.Background(), "OVH-SERVICE-003")
+	if err != nil {
+		t.Fatalf("démarrage impossible : %v", err)
+	}
+	if startedService.Status != domain.CloudServiceStatusRunning {
+		t.Errorf("statut attendu %q, statut reçu %q", domain.CloudServiceStatusRunning, startedService.Status)
+	}
+	if startedService.CPUUsage != 0.65 {
+		t.Errorf("CPU nominal attendu %.0f %%, CPU reçu %.0f %%", 65.0, startedService.CPUUsage*100)
 	}
 }

@@ -8,19 +8,23 @@ interface CloudServiceListProps {
   services: CloudService[];
   loading: boolean;
   error: string | null;
-  restartingServiceId: string | null;
+  operatingServiceId: string | null;
   onRestart: (id: string) => Promise<void>;
+  onShutdown: (id: string) => Promise<void>;
+  onStart: (id: string) => Promise<void>;
 }
 
 export function CloudServiceList({
   services,
   loading,
   error,
-  restartingServiceId,
+  operatingServiceId,
   onRestart,
+  onShutdown,
+  onStart,
 }: CloudServiceListProps) {
   if (loading) {
-    return <p className="panel-state">Chargement des services...</p>;
+    return <p className="panel-state">Loading services...</p>;
   }
 
   if (error) {
@@ -33,11 +37,13 @@ export function CloudServiceList({
         <CloudServiceCard
           key={service.id}
           service={service}
-          isRestarting={
-            restartingServiceId === service.id ||
+          isOperating={
+            operatingServiceId === service.id ||
             service.status === CloudServiceStatus.Restarting
           }
           onRestart={onRestart}
+          onShutdown={onShutdown}
+          onStart={onStart}
         />
       ))}
     </div>

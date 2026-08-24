@@ -7,17 +7,15 @@ import { CloudServiceList } from "./components/cloud-services/CloudServiceList";
 import { useCloudServices } from "./hooks/useCloudServices";
 import { ChatApi } from "./services/ChatApi";
 import { CloudServiceApi } from "./services/CloudServiceApi";
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL ?? "http://localhost:8080";
+import { config } from "./config";
 
 export default function App() {
   const cloudServiceApi = useMemo(
-    () => new CloudServiceApi(API_BASE_URL),
+    () => new CloudServiceApi(config.apiBaseUrl),
     [],
   );
   const chatApi = useMemo(
-    () => new ChatApi(API_BASE_URL),
+    () => new ChatApi(config.apiBaseUrl),
     [],
   );
 
@@ -25,8 +23,10 @@ export default function App() {
     services,
     loading,
     error,
-    restartingServiceId,
+    operatingServiceId,
     restartService,
+    shutdownService,
+    startService,
     refreshServices,
   } = useCloudServices(cloudServiceApi);
 
@@ -41,7 +41,7 @@ export default function App() {
         <header className="panel-header">
           <div>
             <span className="eyebrow">Infrastructure</span>
-            <h2>Services cloud</h2>
+            <h2>Cloud services</h2>
           </div>
 
           <span className="service-count">
@@ -53,8 +53,10 @@ export default function App() {
           services={services}
           loading={loading}
           error={error}
-          restartingServiceId={restartingServiceId}
+          operatingServiceId={operatingServiceId}
           onRestart={restartService}
+          onShutdown={shutdownService}
+          onStart={startService}
         />
       </aside>
     </main>

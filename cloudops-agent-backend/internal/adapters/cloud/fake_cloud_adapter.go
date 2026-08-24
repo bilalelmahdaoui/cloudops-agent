@@ -13,14 +13,19 @@ import (
 type FakeCloudAdapter struct {
 	mu            sync.RWMutex
 	cloudServices [5]domain.CloudService
+	nominalCPU    [5]float64
 	restarts      map[int]chan struct{}
 	restartDelay  time.Duration
+	shutdownDelay time.Duration
+	startDelay    time.Duration
 }
 
 func NewFakeCloudAdapter() *FakeCloudAdapter {
-	return &FakeCloudAdapter{
-		restarts:     make(map[int]chan struct{}),
-		restartDelay: 5 * time.Second,
+	adapter := &FakeCloudAdapter{
+		restarts:      make(map[int]chan struct{}),
+		restartDelay:  4 * time.Second,
+		shutdownDelay: 2 * time.Second,
+		startDelay:    2 * time.Second,
 		cloudServices: [5]domain.CloudService{
 			{
 				ID:       "OVH-SERVICE-001",
@@ -103,6 +108,12 @@ func NewFakeCloudAdapter() *FakeCloudAdapter {
 				},
 			},
 		}}
+
+	for index, service := range adapter.cloudServices {
+		adapter.nominalCPU[index] = service.CPUUsage
+	}
+
+	return adapter
 }
 
 func (e *FakeCloudAdapter) GetAll(ctx context.Context) ([]domain.CloudService, error) {
@@ -197,12 +208,18 @@ func (e *FakeCloudAdapter) Restart(ctx context.Context, id string) (domain.Cloud
 		e.mu.Unlock()
 		return domain.CloudService{}, fmt.Errorf("cloud service with id %q not found", id)
 	}
+	if e.cloudServices[cloudServiceIdx].Status == domain.CloudServiceStatusDown {
+		e.mu.Unlock()
+		return domain.CloudService{}, fmt.Errorf("cannot restart stopped service %q", id)
+	}
 
 	done, alreadyRestarting := e.restarts[cloudServiceIdx]
 	if !alreadyRestarting {
 		done = make(chan struct{})
 		e.restarts[cloudServiceIdx] = done
+		e.nominalCPU[cloudServiceIdx] = e.cloudServices[cloudServiceIdx].CPUUsage
 		e.cloudServices[cloudServiceIdx].Status = domain.CloudServiceStatusRestarting
+		e.cloudServices[cloudServiceIdx].CPUUsage = 0
 		e.cloudServices[cloudServiceIdx].Logs = append(
 			e.cloudServices[cloudServiceIdx].Logs,
 			domain.CloudServiceLog{
@@ -231,6 +248,7 @@ func (e *FakeCloudAdapter) completeRestart(index int, done chan struct{}) {
 
 	e.mu.Lock()
 	e.cloudServices[index].Status = domain.CloudServiceStatusRunning
+	e.cloudServices[index].CPUUsage = e.nominalCPU[index]
 	e.cloudServices[index].Logs = append(
 		e.cloudServices[index].Logs,
 		domain.CloudServiceLog{
@@ -241,6 +259,120 @@ func (e *FakeCloudAdapter) completeRestart(index int, done chan struct{}) {
 	delete(e.restarts, index)
 	close(done)
 	e.mu.Unlock()
+}
+
+func (e *FakeCloudAdapter) Shutdown(ctx context.Context, id string) (domain.CloudService, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.CloudService{}, err
+	}
+	if id == "" {
+		return domain.CloudService{}, fmt.Errorf("ID is required")
+	}
+
+	e.mu.RLock()
+
+	index := e.cloudServiceIndex(id)
+	if index == -1 {
+		e.mu.RUnlock()
+		return domain.CloudService{}, fmt.Errorf("cloud service with ID %q not found", id)
+	}
+	if _, restarting := e.restarts[index]; restarting {
+		e.mu.RUnlock()
+		return domain.CloudService{}, fmt.Errorf("cannot stop service %q while it is restarting", id)
+	}
+	if e.cloudServices[index].Status == domain.CloudServiceStatusDown {
+		service := cloneCloudService(e.cloudServices[index])
+		e.mu.RUnlock()
+		return service, nil
+	}
+	e.mu.RUnlock()
+
+	if err := waitForOperation(ctx, e.shutdownDelay); err != nil {
+		return domain.CloudService{}, err
+	}
+
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.nominalCPU[index] = e.cloudServices[index].CPUUsage
+	e.cloudServices[index].Status = domain.CloudServiceStatusDown
+	e.cloudServices[index].CPUUsage = 0
+	e.cloudServices[index].Logs = append(
+		e.cloudServices[index].Logs,
+		domain.CloudServiceLog{
+			DateTime: time.Now(),
+			Event:    "Server shut down successfully",
+		},
+	)
+
+	return cloneCloudService(e.cloudServices[index]), nil
+}
+
+func (e *FakeCloudAdapter) Start(ctx context.Context, id string) (domain.CloudService, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.CloudService{}, err
+	}
+	if id == "" {
+		return domain.CloudService{}, fmt.Errorf("ID is required")
+	}
+
+	e.mu.RLock()
+
+	index := e.cloudServiceIndex(id)
+	if index == -1 {
+		e.mu.RUnlock()
+		return domain.CloudService{}, fmt.Errorf("cloud service with ID %q not found", id)
+	}
+	if _, restarting := e.restarts[index]; restarting {
+		e.mu.RUnlock()
+		return domain.CloudService{}, fmt.Errorf("cannot start service %q while it is restarting", id)
+	}
+	if e.cloudServices[index].Status == domain.CloudServiceStatusRunning {
+		service := cloneCloudService(e.cloudServices[index])
+		e.mu.RUnlock()
+		return service, nil
+	}
+	e.mu.RUnlock()
+
+	if err := waitForOperation(ctx, e.startDelay); err != nil {
+		return domain.CloudService{}, err
+	}
+
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.cloudServices[index].Status = domain.CloudServiceStatusRunning
+	e.cloudServices[index].CPUUsage = e.nominalCPU[index]
+	e.cloudServices[index].Logs = append(
+		e.cloudServices[index].Logs,
+		domain.CloudServiceLog{
+			DateTime: time.Now(),
+			Event:    "Server started successfully",
+		},
+	)
+
+	return cloneCloudService(e.cloudServices[index]), nil
+}
+
+func waitForOperation(ctx context.Context, delay time.Duration) error {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
+func (e *FakeCloudAdapter) cloudServiceIndex(id string) int {
+	for index, service := range e.cloudServices {
+		if service.ID == id {
+			return index
+		}
+	}
+	return -1
 }
 
 func cloneCloudService(service domain.CloudService) domain.CloudService {

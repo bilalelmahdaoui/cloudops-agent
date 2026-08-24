@@ -23,7 +23,7 @@ func NewMCPClientAdapter(
 
 	serverSession, err := server.Connect(ctx, serverTransport, nil)
 	if err != nil {
-		return nil, fmt.Errorf("connexion au serveur MCP : %w", err)
+		return nil, fmt.Errorf("connect to MCP server: %w", err)
 	}
 
 	client := mcp.NewClient(
@@ -33,7 +33,7 @@ func NewMCPClientAdapter(
 	clientSession, err := client.Connect(ctx, clientTransport, nil)
 	if err != nil {
 		_ = serverSession.Close()
-		return nil, fmt.Errorf("connexion du client MCP : %w", err)
+		return nil, fmt.Errorf("connect MCP client: %w", err)
 	}
 
 	return &MCPClientAdapter{
@@ -47,12 +47,12 @@ func (a *MCPClientAdapter) ListTools(ctx context.Context) ([]ports.ToolDefinitio
 
 	for tool, err := range a.clientSession.Tools(ctx, nil) {
 		if err != nil {
-			return nil, fmt.Errorf("découverte des outils MCP : %w", err)
+			return nil, fmt.Errorf("discover MCP tools: %w", err)
 		}
 
 		parameters, err := schemaAsMap(tool.InputSchema)
 		if err != nil {
-			return nil, fmt.Errorf("schéma de l'outil MCP %s : %w", tool.Name, err)
+			return nil, fmt.Errorf("read MCP tool schema %s: %w", tool.Name, err)
 		}
 
 		definitions = append(definitions, ports.ToolDefinition{
@@ -71,7 +71,7 @@ func (a *MCPClientAdapter) CallTool(
 ) (string, error) {
 	var arguments map[string]any
 	if err := json.Unmarshal([]byte(call.Arguments), &arguments); err != nil {
-		return "", fmt.Errorf("arguments invalides pour l'outil MCP %s : %w", call.Name, err)
+		return "", fmt.Errorf("invalid arguments for MCP tool %s: %w", call.Name, err)
 	}
 
 	result, err := a.clientSession.CallTool(ctx, &mcp.CallToolParams{
@@ -79,7 +79,7 @@ func (a *MCPClientAdapter) CallTool(
 		Arguments: arguments,
 	})
 	if err != nil {
-		return "", fmt.Errorf("appel de l'outil MCP %s : %w", call.Name, err)
+		return "", fmt.Errorf("call MCP tool %s: %w", call.Name, err)
 	}
 
 	if result.IsError {
@@ -87,7 +87,7 @@ func (a *MCPClientAdapter) CallTool(
 			"error": textContent(result.Content),
 		})
 		if err != nil {
-			return "", fmt.Errorf("sérialisation de l'erreur MCP %s : %w", call.Name, err)
+			return "", fmt.Errorf("serialize MCP error %s: %w", call.Name, err)
 		}
 		return string(output), nil
 	}
@@ -95,7 +95,7 @@ func (a *MCPClientAdapter) CallTool(
 	if result.StructuredContent != nil {
 		output, err := json.Marshal(result.StructuredContent)
 		if err != nil {
-			return "", fmt.Errorf("sérialisation du résultat MCP %s : %w", call.Name, err)
+			return "", fmt.Errorf("serialize MCP result %s: %w", call.Name, err)
 		}
 		return string(output), nil
 	}

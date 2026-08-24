@@ -35,7 +35,7 @@ export function ChatInput({
       <input
         value={message}
         onChange={(event) => setMessage(event.target.value)}
-        placeholder="Demandez quelque chose à CloudOps Agent..."
+        placeholder="Ask CloudOps Agent something..."
         aria-label="Message"
         disabled={disabled}
       />
@@ -45,7 +45,7 @@ export function ChatInput({
         className="button button--primary"
         disabled={disabled || !message.trim()}
       >
-        {disabled ? "Envoi..." : "Envoyer"}
+        {disabled ? "Sending..." : "Send"}
       </button>
     </form>
   );

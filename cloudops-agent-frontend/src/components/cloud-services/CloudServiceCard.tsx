@@ -1,32 +1,55 @@
-import { useState } from "react";
-
 import {
   CloudServiceStatus,
   type CloudService,
 } from "../../types/CloudService";
+import {
+  ServiceActionsMenu,
+  type ServiceAction,
+} from "./ServiceActionsMenu";
 
 interface CloudServiceCardProps {
   service: CloudService;
-  isRestarting: boolean;
+  isOperating: boolean;
   onRestart: (id: string) => Promise<void>;
+  onShutdown: (id: string) => Promise<void>;
+  onStart: (id: string) => Promise<void>;
 }
 
 export function CloudServiceCard({
   service,
-  isRestarting,
+  isOperating,
   onRestart,
+  onShutdown,
+  onStart,
 }: CloudServiceCardProps) {
-  const [isConfirming, setIsConfirming] = useState(false);
+  const isRestarting =
+    service.status === CloudServiceStatus.Restarting;
+  const isMuted =
+    isOperating ||
+    isRestarting ||
+    service.status === CloudServiceStatus.Down;
+  const cpuPercentage =
+    service.status === CloudServiceStatus.Running && !isOperating
+      ? Math.round(service.cpuUsage * 100)
+      : 0;
 
-  const cpuPercentage = Math.round(service.cpuUsage * 100);
-
-  const handleRestart = async () => {
-    setIsConfirming(false);
-    await onRestart(service.id);
+  const handleAction = (action: ServiceAction) => {
+    switch (action) {
+      case "restart":
+        return onRestart(service.id);
+      case "shutdown":
+        return onShutdown(service.id);
+      case "start":
+        return onStart(service.id);
+    }
   };
 
   return (
-    <article className="service-card">
+    <article
+      className={`service-card${
+        isMuted ? " service-card--muted" : ""
+      }`}
+    >
       <header className="service-card__header">
         <div>
           <h3>{service.name}</h3>
@@ -60,36 +83,14 @@ export function CloudServiceCard({
       </div>
 
       <div className="service-card__footer">
-        <span>{service.logs.length} événements</span>
+        <span>{service.logs.length} events</span>
 
-        {!isConfirming ? (
-          <button
-            type="button"
-            className="button button--secondary"
-            disabled={isRestarting}
-            onClick={() => setIsConfirming(true)}
-          >
-            {isRestarting ? "Redémarrage..." : "Redémarrer"}
-          </button>
-        ) : (
-          <div className="confirmation-actions">
-            <button
-              type="button"
-              className="button button--danger"
-              onClick={() => void handleRestart()}
-            >
-              Confirmer
-            </button>
-
-            <button
-              type="button"
-              className="button button--ghost"
-              onClick={() => setIsConfirming(false)}
-            >
-              Annuler
-            </button>
-          </div>
-        )}
+        <ServiceActionsMenu
+          serviceName={service.name}
+          status={service.status}
+          disabled={isOperating}
+          onAction={handleAction}
+        />
       </div>
     </article>
   );
@@ -98,12 +99,12 @@ export function CloudServiceCard({
 function formatStatus(status: CloudServiceStatus): string {
   switch (status) {
     case CloudServiceStatus.Running:
-      return "En ligne";
+      return "Online";
 
     case CloudServiceStatus.Restarting:
-      return "Redémarrage";
+      return "Restarting";
 
     case CloudServiceStatus.Down:
-      return "Indisponible";
+      return "Offline";
   }
 }

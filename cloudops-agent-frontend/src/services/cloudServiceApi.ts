@@ -24,6 +24,24 @@ export class CloudServiceApi {
     );
   }
 
+  public async shutdownCloudService(id: string): Promise<CloudService> {
+    return this.request<CloudService>(
+      `/cloud-services/${id}/shutdown`,
+      {
+        method: "POST",
+      },
+    );
+  }
+
+  public async startCloudService(id: string): Promise<CloudService> {
+    return this.request<CloudService>(
+      `/cloud-services/${id}/start`,
+      {
+        method: "POST",
+      },
+    );
+  }
+
   private async request<T>(
     path: string,
     options?: RequestInit,
@@ -32,7 +50,7 @@ export class CloudServiceApi {
 
     if (!response.ok) {
       throw new Error(
-        `La requête a échoué avec le statut ${response.status}`,
+        `The request failed with status ${response.status}`,
       );
     }
 

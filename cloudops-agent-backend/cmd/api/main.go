@@ -30,12 +30,16 @@ func main() {
 	getCloudServiceUseCase := application.NewGetCloudServiceUseCase(fakeCloudAdapter)
 	searchCloudServicesUseCase := application.NewSearchCloudServicesUseCase(fakeCloudAdapter)
 	restartCloudServiceUseCase := application.NewRestartCloudServiceUseCase(fakeCloudAdapter)
+	shutdownCloudServiceUseCase := application.NewShutdownCloudServiceUseCase(fakeCloudAdapter)
+	startCloudServiceUseCase := application.NewStartCloudServiceUseCase(fakeCloudAdapter)
 
 	mcpServer := mcpadapter.NewCloudOpsServer(
 		getCloudServiceUseCase,
 		getAllCloudServicesUseCase,
 		searchCloudServicesUseCase,
 		restartCloudServiceUseCase,
+		shutdownCloudServiceUseCase,
+		startCloudServiceUseCase,
 	)
 	mcpClient, err := mcpadapter.NewMCPClientAdapter(context.Background(), mcpServer)
 	if err != nil {
@@ -52,6 +56,8 @@ func main() {
 		getAllCloudServicesUseCase,
 		getCloudServiceUseCase,
 		restartCloudServiceUseCase,
+		shutdownCloudServiceUseCase,
+		startCloudServiceUseCase,
 	)
 	chatHandler := httpadapter.NewChatHandler(chatWithAgentUseCase)
 

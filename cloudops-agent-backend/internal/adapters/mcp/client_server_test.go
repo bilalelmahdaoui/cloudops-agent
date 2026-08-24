@@ -20,6 +20,8 @@ func newTestMCPClient(t *testing.T) *MCPClientAdapter {
 		application.NewGetAllCloudServicesUseCase(repository),
 		application.NewSearchCloudServicesUseCase(repository),
 		application.NewRestartCloudServiceUseCase(repository),
+		application.NewShutdownCloudServiceUseCase(repository),
+		application.NewStartCloudServiceUseCase(repository),
 	)
 
 	client, err := NewMCPClientAdapter(context.Background(), server)
@@ -44,10 +46,12 @@ func TestMCPClientAdapter_ListTools(t *testing.T) {
 	}
 
 	expected := map[string]bool{
-		GetCloudServiceToolName:     false,
-		GetAllCloudServicesToolName: false,
-		FindCloudServicesToolName:   false,
-		RestartCloudServiceToolName: false,
+		GetCloudServiceToolName:      false,
+		GetAllCloudServicesToolName:  false,
+		FindCloudServicesToolName:    false,
+		RestartCloudServiceToolName:  false,
+		ShutdownCloudServiceToolName: false,
+		StartCloudServiceToolName:    false,
 	}
 	for _, tool := range tools {
 		if _, exists := expected[tool.Name]; exists {
@@ -170,6 +174,42 @@ func TestMCPClientAdapter_CallTool(t *testing.T) {
 		}
 		if len(service.Logs) != 4 {
 			t.Errorf("nombre de logs attendu %d, nombre reçu %d", 4, len(service.Logs))
+		}
+	})
+
+	t.Run("arrête puis démarre un service via les cas d'usage existants", func(t *testing.T) {
+		client := newTestMCPClient(t)
+
+		shutdownOutput, err := client.CallTool(context.Background(), ports.ToolCall{
+			Name:      ShutdownCloudServiceToolName,
+			Arguments: `{"id":"OVH-SERVICE-003"}`,
+		})
+		if err != nil {
+			t.Fatalf("arrêt impossible : %v", err)
+		}
+
+		var stoppedService domain.CloudService
+		if err := json.Unmarshal([]byte(shutdownOutput), &stoppedService); err != nil {
+			t.Fatalf("résultat JSON d'arrêt invalide : %v", err)
+		}
+		if stoppedService.Status != domain.CloudServiceStatusDown || stoppedService.CPUUsage != 0 {
+			t.Fatal("le service devait être arrêté avec un CPU nul")
+		}
+
+		startOutput, err := client.CallTool(context.Background(), ports.ToolCall{
+			Name:      StartCloudServiceToolName,
+			Arguments: `{"id":"OVH-SERVICE-003"}`,
+		})
+		if err != nil {
+			t.Fatalf("démarrage impossible : %v", err)
+		}
+
+		var startedService domain.CloudService
+		if err := json.Unmarshal([]byte(startOutput), &startedService); err != nil {
+			t.Fatalf("résultat JSON de démarrage invalide : %v", err)
+		}
+		if startedService.Status != domain.CloudServiceStatusRunning || startedService.CPUUsage != 0.65 {
+			t.Fatal("le service devait être démarré avec son CPU nominal")
 		}
 	})
 }

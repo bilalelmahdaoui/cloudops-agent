@@ -28,7 +28,7 @@ export class ChatApi {
 
     if (!response.ok) {
       throw new Error(
-        `La requête a échoué avec le statut ${response.status}`,
+        `The request failed with status ${response.status}`,
       );
     }
 

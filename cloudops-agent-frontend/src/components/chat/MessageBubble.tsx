@@ -15,7 +15,7 @@ export function MessageBubble({
       className={`message message--${message.role}`}
     >
       <span className="message__author">
-        {message.role === "user" ? "Vous" : "CloudOps Agent"}
+        {message.role === "user" ? "You" : "CloudOps Agent"}
       </span>
 
       {message.role === "assistant" ? (

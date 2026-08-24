@@ -9,18 +9,20 @@ import (
 )
 
 const (
-	GetCloudServiceToolName     = "get_cloud_service"
-	GetAllCloudServicesToolName = "get_all_cloud_services"
-	FindCloudServicesToolName   = "find_cloud_services"
-	RestartCloudServiceToolName = "restart_cloud_service"
+	GetCloudServiceToolName      = "get_cloud_service"
+	GetAllCloudServicesToolName  = "get_all_cloud_services"
+	FindCloudServicesToolName    = "find_cloud_services"
+	RestartCloudServiceToolName  = "restart_cloud_service"
+	ShutdownCloudServiceToolName = "shutdown_cloud_service"
+	StartCloudServiceToolName    = "start_cloud_service"
 )
 
 type cloudServiceInput struct {
-	ID string `json:"id" jsonschema:"identifiant du service cloud"`
+	ID string `json:"id" jsonschema:"cloud service identifier"`
 }
 
 type findCloudServicesInput struct {
-	Query string `json:"query" jsonschema:"nom ou fragment de nom du service cloud"`
+	Query string `json:"query" jsonschema:"cloud service name or partial name"`
 }
 
 type cloudServiceReference struct {
@@ -35,6 +37,8 @@ func NewCloudOpsServer(
 	getAllCloudServicesUseCase *application.GetAllCloudServicesUseCase,
 	searchCloudServicesUseCase *application.SearchCloudServicesUseCase,
 	restartCloudServiceUseCase *application.RestartCloudServiceUseCase,
+	shutdownCloudServiceUseCase *application.ShutdownCloudServiceUseCase,
+	startCloudServiceUseCase *application.StartCloudServiceUseCase,
 ) *mcp.Server {
 	server := mcp.NewServer(
 		&mcp.Implementation{Name: "cloudops-mcp-server", Version: "1.0.0"},
@@ -81,7 +85,7 @@ func NewCloudOpsServer(
 		&mcp.Tool{
 			Name: FindCloudServicesToolName,
 			Description: "Finds cloud services by a full or partial human-readable name, case-insensitively, and returns " +
-				"their canonical ids. Use this before get_cloud_service or restart_cloud_service when the user identifies " +
+				"their canonical ids. Use this before any read or lifecycle tool when the user identifies " +
 				"a service by name instead of a canonical OVH-SERVICE-xxx id. Only act automatically when exactly one " +
 				"service matches; ask the user to clarify when several services match.",
 		},
@@ -120,6 +124,42 @@ func NewCloudOpsServer(
 			input cloudServiceInput,
 		) (*mcp.CallToolResult, domain.CloudService, error) {
 			service, err := restartCloudServiceUseCase.Execute(ctx, input.ID)
+			return nil, service, err
+		},
+	)
+
+	mcp.AddTool(
+		server,
+		&mcp.Tool{
+			Name: ShutdownCloudServiceToolName,
+			Description: "Shuts down the specified cloud service and returns its authoritative down state. " +
+				"This tool has a side effect; use it only when the user explicitly asks to stop or shut down a service. " +
+				"Requires the canonical service id. If the user provides a name, call find_cloud_services first.",
+		},
+		func(
+			ctx context.Context,
+			_ *mcp.CallToolRequest,
+			input cloudServiceInput,
+		) (*mcp.CallToolResult, domain.CloudService, error) {
+			service, err := shutdownCloudServiceUseCase.Execute(ctx, input.ID)
+			return nil, service, err
+		},
+	)
+
+	mcp.AddTool(
+		server,
+		&mcp.Tool{
+			Name: StartCloudServiceToolName,
+			Description: "Starts a stopped cloud service and returns its authoritative running state. " +
+				"This tool has a side effect; use it only when the user explicitly asks to start a service. " +
+				"Requires the canonical service id. If the user provides a name, call find_cloud_services first.",
+		},
+		func(
+			ctx context.Context,
+			_ *mcp.CallToolRequest,
+			input cloudServiceInput,
+		) (*mcp.CallToolResult, domain.CloudService, error) {
+			service, err := startCloudServiceUseCase.Execute(ctx, input.ID)
 			return nil, service, err
 		},
 	)

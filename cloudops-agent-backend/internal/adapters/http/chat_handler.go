@@ -34,12 +34,12 @@ func (h *ChatHandler) Chat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "corps de requête JSON invalide", http.StatusBadRequest)
+		http.Error(w, "invalid JSON request body", http.StatusBadRequest)
 		return
 	}
 
 	if strings.TrimSpace(request.Message) == "" {
-		http.Error(w, "le message est requis", http.StatusBadRequest)
+		http.Error(w, "message is required", http.StatusBadRequest)
 		return
 	}
 
@@ -47,11 +47,11 @@ func (h *ChatHandler) Chat(w http.ResponseWriter, r *http.Request) {
 	for index, historyMessage := range request.History {
 		if historyMessage.Role != ports.AgentMessageRoleUser &&
 			historyMessage.Role != ports.AgentMessageRoleAssistant {
-			http.Error(w, "rôle invalide dans l'historique", http.StatusBadRequest)
+			http.Error(w, "invalid role in conversation history", http.StatusBadRequest)
 			return
 		}
 		if strings.TrimSpace(historyMessage.Content) == "" {
-			http.Error(w, "message vide dans l'historique", http.StatusBadRequest)
+			http.Error(w, "empty message in conversation history", http.StatusBadRequest)
 			return
 		}
 		history[index] = ports.AgentMessage{
@@ -65,8 +65,8 @@ func (h *ChatHandler) Chat(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, context.Canceled) {
 			return
 		}
-		log.Printf("erreur pendant le chat : %v", err)
-		http.Error(w, "impossible de générer une réponse", http.StatusInternalServerError)
+		log.Printf("chat error: %v", err)
+		http.Error(w, "unable to generate a response", http.StatusInternalServerError)
 		return
 	}
 

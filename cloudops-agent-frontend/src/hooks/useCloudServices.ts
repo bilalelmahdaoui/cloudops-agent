@@ -14,7 +14,7 @@ export function useCloudServices(api: CloudServiceApi) {
   const [services, setServices] = useState<CloudService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [restartingServiceId, setRestartingServiceId] =
+  const [operatingServiceId, setOperatingServiceId] =
     useState<string | null>(null);
   const refreshInProgress = useRef(false);
 
@@ -30,7 +30,7 @@ export function useCloudServices(api: CloudServiceApi) {
       setServices(cloudServices);
       setError(null);
     } catch {
-      setError("Impossible de récupérer les services cloud.");
+      setError("Unable to load cloud services.");
     } finally {
       setLoading(false);
       refreshInProgress.current = false;
@@ -53,24 +53,55 @@ export function useCloudServices(api: CloudServiceApi) {
     };
   }, [refreshServices]);
 
+  const updateService = (updatedService: CloudService) => {
+    setServices((currentServices) =>
+      currentServices.map((service) =>
+        service.id === updatedService.id
+          ? updatedService
+          : service,
+      ),
+    );
+  };
+
   const restartService = async (id: string) => {
     try {
-      setRestartingServiceId(id);
+      setOperatingServiceId(id);
       setError(null);
 
       const updatedService = await api.restartCloudService(id);
-
-      setServices((currentServices) =>
-        currentServices.map((service) =>
-          service.id === updatedService.id
-            ? updatedService
-            : service,
-        ),
-      );
+      updateService(updatedService);
     } catch {
-      setError("Impossible de redémarrer le service cloud.");
+      setError("Unable to restart the cloud service.");
     } finally {
-      setRestartingServiceId(null);
+      setOperatingServiceId(null);
+    }
+  };
+
+  const shutdownService = async (id: string) => {
+    try {
+      setOperatingServiceId(id);
+      setError(null);
+
+      const updatedService = await api.shutdownCloudService(id);
+      updateService(updatedService);
+    } catch {
+      setError("Unable to stop the cloud service.");
+    } finally {
+      setOperatingServiceId(null);
+    }
+  };
+
+  const startService = async (id: string) => {
+    try {
+      setOperatingServiceId(id);
+      setError(null);
+
+      const updatedService = await api.startCloudService(id);
+      updateService(updatedService);
+    } catch {
+      setError("Unable to start the cloud service.");
+    } finally {
+      setOperatingServiceId(null);
     }
   };
 
@@ -78,8 +109,10 @@ export function useCloudServices(api: CloudServiceApi) {
     services,
     loading,
     error,
-    restartingServiceId,
+    operatingServiceId,
     restartService,
+    shutdownService,
+    startService,
     refreshServices,
   };
 }

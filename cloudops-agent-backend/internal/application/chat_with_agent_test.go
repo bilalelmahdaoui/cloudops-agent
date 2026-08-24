@@ -56,6 +56,8 @@ func testToolDefinitions() []ports.ToolDefinition {
 		{Name: "get_all_cloud_services"},
 		{Name: "find_cloud_services"},
 		{Name: "restart_cloud_service"},
+		{Name: "shutdown_cloud_service"},
+		{Name: "start_cloud_service"},
 	}
 }
 
@@ -83,8 +85,8 @@ func TestChatWithAgentUseCase_Execute(t *testing.T) {
 	if !strings.Contains(llm.requests[0].Instructions, "exactly one service") {
 		t.Error("les instructions devaient interdire une action sur une recherche ambiguë")
 	}
-	if len(llm.requests[0].Tools) != 4 {
-		t.Errorf("quatre outils MCP attendus, %d reçus", len(llm.requests[0].Tools))
+	if len(llm.requests[0].Tools) != 6 {
+		t.Errorf("six outils MCP attendus, %d reçus", len(llm.requests[0].Tools))
 	}
 	if len(llm.requests[0].Messages) != 1 ||
 		llm.requests[0].Messages[0].Content != "Que peux-tu faire ?" {
@@ -287,6 +289,66 @@ func TestChatWithAgentUseCase_Execute_RecherchePuisRedemarreParNom(t *testing.T)
 	}
 }
 
+func TestChatWithAgentUseCase_Execute_ArretEtDemarrageExplicites(t *testing.T) {
+	tests := []struct {
+		nom      string
+		message  string
+		outil    string
+		resultat string
+		reponse  string
+	}{
+		{
+			nom:      "arrête un service",
+			message:  "Arrête OVH-SERVICE-002.",
+			outil:    "shutdown_cloud_service",
+			resultat: `{"id":"OVH-SERVICE-002","status":"down","cpuUsage":0}`,
+			reponse:  "OVH-SERVICE-002 a été arrêté.",
+		},
+		{
+			nom:      "démarre un service",
+			message:  "Démarre OVH-SERVICE-002.",
+			outil:    "start_cloud_service",
+			resultat: `{"id":"OVH-SERVICE-002","status":"running","cpuUsage":0.15}`,
+			reponse:  "OVH-SERVICE-002 a été démarré.",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nom, func(t *testing.T) {
+			llm := &scriptedAgentLLM{responses: []ports.AgentResponse{
+				{
+					ID: "response-1",
+					ToolCalls: []ports.ToolCall{{
+						ID:        "call-1",
+						Name:      test.outil,
+						Arguments: `{"id":"OVH-SERVICE-002"}`,
+					}},
+				},
+				{Message: test.reponse},
+			}}
+			provider := &fakeToolProvider{
+				tools:   testToolDefinitions(),
+				outputs: map[string]string{test.outil: test.resultat},
+			}
+
+			response, err := NewChatWithAgentUseCase(llm, provider).Execute(
+				context.Background(),
+				test.message,
+				nil,
+			)
+			if err != nil {
+				t.Fatalf("aucune erreur attendue, erreur reçue : %v", err)
+			}
+			if response != test.reponse {
+				t.Errorf("réponse attendue %q, réponse reçue %q", test.reponse, response)
+			}
+			if len(provider.calls) != 1 || provider.calls[0].Name != test.outil {
+				t.Errorf("l'outil %q devait être appelé", test.outil)
+			}
+		})
+	}
+}
+
 func TestChatWithAgentUseCase_Execute_ExpliqueErreurMetierOutil(t *testing.T) {
 	const toolError = `{"error":"cloud service with id \\"003\\" not found"}`
 	llm := &scriptedAgentLLM{responses: []ports.AgentResponse{
@@ -341,7 +403,7 @@ func TestChatWithAgentUseCase_Execute_BoucleBornee(t *testing.T) {
 	useCase := NewChatWithAgentUseCase(llm, provider)
 
 	_, err := useCase.Execute(context.Background(), "Quels services sont disponibles ?", nil)
-	if err == nil || !strings.Contains(err.Error(), "nombre maximal") {
+	if err == nil || !strings.Contains(err.Error(), "maximum number") {
 		t.Fatalf("une erreur de boucle bornée était attendue, erreur reçue : %v", err)
 	}
 	if len(llm.requests) != maxAgentRounds {

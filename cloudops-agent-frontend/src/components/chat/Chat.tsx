@@ -10,11 +10,11 @@ const INITIAL_MESSAGES: ChatMessage[] = [
     id: "welcome",
     role: "assistant",
     content:
-      "Bonjour. Je peux vous aider à diagnostiquer et piloter vos services cloud.",
+      "Hello. I can help you monitor, diagnose, and manage your cloud services.",
   },
 ];
 
-const CHAT_HISTORY_STORAGE_KEY = "cloudops-agent.chat-history";
+const CHAT_HISTORY_STORAGE_KEY = "cloudops-agent.chat-history.v2";
 const MAX_CONTEXT_MESSAGES = 12;
 
 interface ChatProps {
@@ -30,6 +30,10 @@ export function Chat({
     useState<ChatMessage[]>(loadChatHistory);
   const [isSending, setIsSending] = useState(false);
 
+  const clearConversation = () => {
+    setMessages(INITIAL_MESSAGES);
+  };
+
   useEffect(() => {
     try {
       localStorage.setItem(
@@ -37,7 +41,7 @@ export function Chat({
         JSON.stringify(messages),
       );
     } catch {
-      // Le chat reste fonctionnel si le stockage du navigateur est indisponible.
+      // Chat remains available when browser storage is unavailable.
     }
   }, [messages]);
 
@@ -80,7 +84,7 @@ export function Chat({
         id: crypto.randomUUID(),
         role: "assistant",
         content:
-          "Impossible de contacter CloudOps Agent. Veuillez réessayer.",
+          "Unable to reach CloudOps Agent. Please try again.",
       };
 
       setMessages((currentMessages) => [
@@ -96,14 +100,25 @@ export function Chat({
     <section className="chat-panel">
       <header className="panel-header">
         <div>
-          <span className="eyebrow">Assistant IA</span>
+          <span className="eyebrow">AI Assistant</span>
           <h1>CloudOps Agent</h1>
         </div>
 
-        <span className="agent-status">
-          <span className="agent-status__dot" />
-          Disponible
-        </span>
+        <div className="panel-header__actions">
+          <span className="agent-status">
+            <span className="agent-status__dot" />
+            Available
+          </span>
+
+          <button
+            type="button"
+            className="clear-chat-button"
+            disabled={isSending}
+            onClick={clearConversation}
+          >
+            Clear chat
+          </button>
+        </div>
       </header>
 
       <MessageList

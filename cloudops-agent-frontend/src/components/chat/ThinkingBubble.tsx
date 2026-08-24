@@ -3,7 +3,7 @@ export function ThinkingBubble() {
     <div
       className="message message--assistant message--thinking"
       role="status"
-      aria-label="CloudOps Agent prépare une réponse"
+      aria-label="CloudOps Agent is preparing a response"
     >
       <span className="message__author">CloudOps Agent</span>
 
