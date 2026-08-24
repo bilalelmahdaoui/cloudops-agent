@@ -12,6 +12,5 @@ dist/
 
 # Env
 .env
-.env.*
 
 .vscode

@@ -5,15 +5,19 @@ import "./App.css";
 import { Chat } from "./components/chat/Chat";
 import { CloudServiceList } from "./components/cloud-services/CloudServiceList";
 import { useCloudServices } from "./hooks/useCloudServices";
+import { ChatApi } from "./services/ChatApi";
 import { CloudServiceApi } from "./services/CloudServiceApi";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ?? "http://localhost:8080";
 
 export default function App() {
   const cloudServiceApi = useMemo(
-    () =>
-      new CloudServiceApi(
-        import.meta.env.VITE_API_URL ??
-          "http://localhost:8080",
-      ),
+    () => new CloudServiceApi(API_BASE_URL),
+    [],
+  );
+  const chatApi = useMemo(
+    () => new ChatApi(API_BASE_URL),
     [],
   );
 
@@ -23,11 +27,15 @@ export default function App() {
     error,
     restartingServiceId,
     restartService,
+    refreshServices,
   } = useCloudServices(cloudServiceApi);
 
   return (
     <main className="app-shell">
-      <Chat />
+      <Chat
+        api={chatApi}
+        onAgentResponse={refreshServices}
+      />
 
       <aside className="services-panel">
         <header className="panel-header">

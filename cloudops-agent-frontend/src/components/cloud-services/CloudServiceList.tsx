@@ -1,4 +1,7 @@
-import type { CloudService } from "../../types/CloudService";
+import {
+  CloudServiceStatus,
+  type CloudService,
+} from "../../types/CloudService";
 import { CloudServiceCard } from "./CloudServiceCard";
 
 interface CloudServiceListProps {
@@ -30,7 +33,10 @@ export function CloudServiceList({
         <CloudServiceCard
           key={service.id}
           service={service}
-          isRestarting={restartingServiceId === service.id}
+          isRestarting={
+            restartingServiceId === service.id ||
+            service.status === CloudServiceStatus.Restarting
+          }
           onRestart={onRestart}
         />
       ))}

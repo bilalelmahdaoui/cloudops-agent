@@ -3,17 +3,24 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/bilalelmahdaoui/cloudops-agent-backend/internal/domain"
 )
 
 type FakeCloudAdapter struct {
+	mu            sync.RWMutex
 	cloudServices [5]domain.CloudService
+	restarts      map[int]chan struct{}
+	restartDelay  time.Duration
 }
 
 func NewFakeCloudAdapter() *FakeCloudAdapter {
 	return &FakeCloudAdapter{
+		restarts:     make(map[int]chan struct{}),
+		restartDelay: 5 * time.Second,
 		cloudServices: [5]domain.CloudService{
 			{
 				ID:       "OVH-SERVICE-001",
@@ -103,8 +110,13 @@ func (e *FakeCloudAdapter) GetAll(ctx context.Context) ([]domain.CloudService, e
 		return nil, err
 	}
 
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
 	cloudServices := make([]domain.CloudService, len(e.cloudServices))
-	copy(cloudServices, e.cloudServices[:])
+	for index, service := range e.cloudServices {
+		cloudServices[index] = cloneCloudService(service)
+	}
 
 	return cloudServices, nil
 }
@@ -117,13 +129,50 @@ func (e *FakeCloudAdapter) GetByID(ctx context.Context, id string) (domain.Cloud
 		return domain.CloudService{}, fmt.Errorf("ID is required")
 	}
 
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
 	for _, service := range e.cloudServices {
 		if service.ID == id {
-			return service, nil
+			return cloneCloudService(service), nil
 		}
 	}
 
 	return domain.CloudService{}, fmt.Errorf("cloud service with id %q not found", id)
+}
+
+func (e *FakeCloudAdapter) Search(
+	ctx context.Context,
+	query string,
+	limit int,
+) ([]domain.CloudService, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	normalizedQuery := strings.ToLower(strings.TrimSpace(query))
+	if normalizedQuery == "" {
+		return nil, fmt.Errorf("search query is required")
+	}
+	if limit <= 0 {
+		return nil, fmt.Errorf("search limit must be positive")
+	}
+
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	services := make([]domain.CloudService, 0)
+	for _, service := range e.cloudServices {
+		if strings.Contains(strings.ToLower(service.Name), normalizedQuery) ||
+			strings.Contains(strings.ToLower(service.ID), normalizedQuery) {
+			services = append(services, cloneCloudService(service))
+			if len(services) == limit {
+				break
+			}
+		}
+	}
+
+	return services, nil
 }
 
 func (e *FakeCloudAdapter) Restart(ctx context.Context, id string) (domain.CloudService, error) {
@@ -134,8 +183,9 @@ func (e *FakeCloudAdapter) Restart(ctx context.Context, id string) (domain.Cloud
 		return domain.CloudService{}, fmt.Errorf("ID is required")
 	}
 
-	cloudServiceIdx := -1
+	e.mu.Lock()
 
+	cloudServiceIdx := -1
 	for idx, service := range e.cloudServices {
 		if service.ID == id {
 			cloudServiceIdx = idx
@@ -144,32 +194,56 @@ func (e *FakeCloudAdapter) Restart(ctx context.Context, id string) (domain.Cloud
 	}
 
 	if cloudServiceIdx == -1 {
+		e.mu.Unlock()
 		return domain.CloudService{}, fmt.Errorf("cloud service with id %q not found", id)
 	}
 
-	e.cloudServices[cloudServiceIdx].Status = domain.CloudServiceStatusRestarting
-	e.cloudServices[cloudServiceIdx].Logs = append(
-		e.cloudServices[cloudServiceIdx].Logs,
-		domain.CloudServiceLog{
-			DateTime: time.Now(),
-			Event:    "Server restarting...",
-		},
-	)
+	done, alreadyRestarting := e.restarts[cloudServiceIdx]
+	if !alreadyRestarting {
+		done = make(chan struct{})
+		e.restarts[cloudServiceIdx] = done
+		e.cloudServices[cloudServiceIdx].Status = domain.CloudServiceStatusRestarting
+		e.cloudServices[cloudServiceIdx].Logs = append(
+			e.cloudServices[cloudServiceIdx].Logs,
+			domain.CloudServiceLog{
+				DateTime: time.Now(),
+				Event:    "Server restarting...",
+			},
+		)
 
-	timer := time.NewTimer(5 * time.Second)
-	defer timer.Stop()
+		go e.completeRestart(cloudServiceIdx, done)
+	}
+	e.mu.Unlock()
 
 	select {
 	case <-ctx.Done():
 		return domain.CloudService{}, ctx.Err()
-
-	case <-timer.C:
-		e.cloudServices[cloudServiceIdx].Status = domain.CloudServiceStatusRunning
-		e.cloudServices[cloudServiceIdx].Logs = append(e.cloudServices[cloudServiceIdx].Logs, domain.CloudServiceLog{
-			DateTime: time.Now(),
-			Event:    "Server started successfully",
-		})
+	case <-done:
 	}
 
-	return e.cloudServices[cloudServiceIdx], nil
+	return e.GetByID(context.Background(), id)
+}
+
+func (e *FakeCloudAdapter) completeRestart(index int, done chan struct{}) {
+	timer := time.NewTimer(e.restartDelay)
+	defer timer.Stop()
+	<-timer.C
+
+	e.mu.Lock()
+	e.cloudServices[index].Status = domain.CloudServiceStatusRunning
+	e.cloudServices[index].Logs = append(
+		e.cloudServices[index].Logs,
+		domain.CloudServiceLog{
+			DateTime: time.Now(),
+			Event:    "Server started successfully",
+		},
+	)
+	delete(e.restarts, index)
+	close(done)
+	e.mu.Unlock()
+}
+
+func cloneCloudService(service domain.CloudService) domain.CloudService {
+	service.Logs = append([]domain.CloudServiceLog(nil), service.Logs...)
+	return service
 }

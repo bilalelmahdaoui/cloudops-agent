@@ -1,7 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { CloudServiceApi } from "../services/CloudServiceApi";
 import type { CloudService } from "../types/CloudService";
+
+const SERVICES_REFRESH_INTERVAL_MS = 1_000;
 
 export function useCloudServices(api: CloudServiceApi) {
   const [services, setServices] = useState<CloudService[]>([]);
@@ -9,25 +16,42 @@ export function useCloudServices(api: CloudServiceApi) {
   const [error, setError] = useState<string | null>(null);
   const [restartingServiceId, setRestartingServiceId] =
     useState<string | null>(null);
+  const refreshInProgress = useRef(false);
 
-  const loadServices = useCallback(async () => {
+  const refreshServices = useCallback(async () => {
+    if (refreshInProgress.current) {
+      return;
+    }
+
+    refreshInProgress.current = true;
     try {
-      setLoading(true);
-      setError(null);
-
       const cloudServices = await api.getCloudServices();
 
       setServices(cloudServices);
+      setError(null);
     } catch {
       setError("Impossible de récupérer les services cloud.");
     } finally {
       setLoading(false);
+      refreshInProgress.current = false;
     }
   }, [api]);
 
   useEffect(() => {
-    void loadServices();
-  }, [loadServices]);
+    const initialLoadId = window.setTimeout(
+      () => void refreshServices(),
+      0,
+    );
+    const intervalId = window.setInterval(
+      () => void refreshServices(),
+      SERVICES_REFRESH_INTERVAL_MS,
+    );
+
+    return () => {
+      window.clearTimeout(initialLoadId);
+      window.clearInterval(intervalId);
+    };
+  }, [refreshServices]);
 
   const restartService = async (id: string) => {
     try {
@@ -56,5 +80,6 @@ export function useCloudServices(api: CloudServiceApi) {
     error,
     restartingServiceId,
     restartService,
+    refreshServices,
   };
 }

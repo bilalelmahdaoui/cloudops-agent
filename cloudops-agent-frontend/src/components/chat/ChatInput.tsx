@@ -4,10 +4,14 @@ import {
 } from "react";
 
 interface ChatInputProps {
-  onSend: (message: string) => void;
+  onSend: (message: string) => Promise<void>;
+  disabled: boolean;
 }
 
-export function ChatInput({ onSend }: ChatInputProps) {
+export function ChatInput({
+  onSend,
+  disabled,
+}: ChatInputProps) {
   const [message, setMessage] = useState("");
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -19,8 +23,8 @@ export function ChatInput({ onSend }: ChatInputProps) {
       return;
     }
 
-    onSend(trimmedMessage);
     setMessage("");
+    void onSend(trimmedMessage);
   };
 
   return (
@@ -33,14 +37,15 @@ export function ChatInput({ onSend }: ChatInputProps) {
         onChange={(event) => setMessage(event.target.value)}
         placeholder="Demandez quelque chose à CloudOps Agent..."
         aria-label="Message"
+        disabled={disabled}
       />
 
       <button
         type="submit"
         className="button button--primary"
-        disabled={!message.trim()}
+        disabled={disabled || !message.trim()}
       >
-        Envoyer
+        {disabled ? "Envoi..." : "Envoyer"}
       </button>
     </form>
   );

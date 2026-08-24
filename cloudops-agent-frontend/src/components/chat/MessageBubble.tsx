@@ -1,3 +1,6 @@
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
 import type { ChatMessage } from "../../types/ChatMessage";
 
 interface MessageBubbleProps {
@@ -15,7 +18,15 @@ export function MessageBubble({
         {message.role === "user" ? "Vous" : "CloudOps Agent"}
       </span>
 
-      <p>{message.content}</p>
+      {message.role === "assistant" ? (
+        <div className="message__content">
+          <Markdown remarkPlugins={[remarkGfm]}>
+            {message.content}
+          </Markdown>
+        </div>
+      ) : (
+        <p>{message.content}</p>
+      )}
     </div>
   );
 }
