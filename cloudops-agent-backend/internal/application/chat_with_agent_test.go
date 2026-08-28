@@ -85,6 +85,9 @@ func TestChatWithAgentUseCase_Execute(t *testing.T) {
 	if !strings.Contains(llm.requests[0].Instructions, "exactly one service") {
 		t.Error("les instructions devaient interdire une action sur une recherche ambiguë")
 	}
+	if !strings.Contains(llm.requests[0].Instructions, "0.3 is 30%") {
+		t.Error("les instructions devaient préciser la conversion du ratio CPU en pourcentage")
+	}
 	if len(llm.requests[0].Tools) != 6 {
 		t.Errorf("six outils MCP attendus, %d reçus", len(llm.requests[0].Tools))
 	}
