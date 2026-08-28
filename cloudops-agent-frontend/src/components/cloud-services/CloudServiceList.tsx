@@ -1,7 +1,7 @@
 import {
   CloudServiceStatus,
   type CloudService,
-} from "../../types/CloudService";
+} from "../../types/cloudService";
 import { CloudServiceCard } from "./CloudServiceCard";
 
 interface CloudServiceListProps {

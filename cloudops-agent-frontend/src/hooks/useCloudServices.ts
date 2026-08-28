@@ -5,8 +5,8 @@ import {
   useState,
 } from "react";
 
-import { CloudServiceApi } from "../services/CloudServiceApi";
-import type { CloudService } from "../types/CloudService";
+import { CloudServiceApi } from "../services/cloudServiceApi";
+import type { CloudService } from "../types/cloudService";
 
 const SERVICES_REFRESH_INTERVAL_MS = 1_000;
 

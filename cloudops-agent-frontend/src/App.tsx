@@ -5,18 +5,23 @@ import "./App.css";
 import { Chat } from "./components/chat/Chat";
 import { CloudServiceList } from "./components/cloud-services/CloudServiceList";
 import { useCloudServices } from "./hooks/useCloudServices";
-import { ChatApi } from "./services/ChatApi";
-import { CloudServiceApi } from "./services/CloudServiceApi";
+import { ApiService } from "./services/apiService";
+import { ChatApi } from "./services/chatApi";
+import { CloudServiceApi } from "./services/cloudServiceApi";
 import { config } from "./config";
 
 export default function App() {
-  const cloudServiceApi = useMemo(
-    () => new CloudServiceApi(config.apiBaseUrl),
+  const apiService = useMemo(
+    () => new ApiService(config.apiBaseUrl),
     [],
   );
+  const cloudServiceApi = useMemo(
+    () => new CloudServiceApi(apiService),
+    [apiService],
+  );
   const chatApi = useMemo(
-    () => new ChatApi(config.apiBaseUrl),
-    [],
+    () => new ChatApi(apiService),
+    [apiService],
   );
 
   const {

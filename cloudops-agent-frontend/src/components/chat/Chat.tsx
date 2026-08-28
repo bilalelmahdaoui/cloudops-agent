@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import type { ChatApi } from "../../services/ChatApi";
+import type { ChatApi } from "../../services/chatApi";
 import type { ChatMessage } from "../../types/ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { MessageList } from "./MessageList";

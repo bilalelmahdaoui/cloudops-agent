@@ -1,7 +1,7 @@
 import {
   CloudServiceStatus,
   type CloudService,
-} from "../../types/CloudService";
+} from "../../types/cloudService";
 import {
   ServiceActionsMenu,
   type ServiceAction,

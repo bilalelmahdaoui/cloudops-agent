@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { CloudServiceStatus } from "../../types/CloudService";
+import { CloudServiceStatus } from "../../types/cloudService";
 
 export type ServiceAction = "restart" | "shutdown" | "start";
 
